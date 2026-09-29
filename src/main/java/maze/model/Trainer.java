@@ -21,6 +21,7 @@ public final class Trainer {
     private GreedyPath lastPath;
     private int stableCount;
     private int learnedAt = -1;
+    private long totalSteps;
 
     public Trainer(Maze maze, Settings settings) {
         this.maze = Objects.requireNonNull(maze, "maze");
@@ -56,6 +57,11 @@ public final class Trainer {
         return history.size();
     }
 
+    /** Сколько всего шагов сделала мышь за всё обучение. */
+    public long totalSteps() {
+        return totalSteps;
+    }
+
     /** Доля случайных шагов в текущей попытке. */
     public double epsilon() {
         return settings.epsilonAt(history.size());
@@ -64,6 +70,7 @@ public final class Trainer {
     /** Один шаг мыши. Если попытка на нём закончилась — сразу начинается следующая. */
     public StepResult step() {
         StepResult result = attempt.step(mouse.choose(attempt.position(), epsilon()));
+        totalSteps++;
         mouse.learn(result, settings.alpha(), settings.gamma());
         if (attempt.isFinished()) {
             finishAttempt();

@@ -78,6 +78,24 @@ class TrainerTest {
         }
 
         @Test
+        void totalStepsCountsEveryStepAcrossAttempts() {
+            Trainer t = new Trainer(new Maze(4, 4), EXACT);
+            assertEquals(0, t.totalSteps());
+            t.step();
+            t.step();
+            assertEquals(2, t.totalSteps());
+            t.runEpisodes(3);
+            assertTrue(t.totalSteps() > 2);
+            long before = t.totalSteps();
+            int stepsInAttempt = 0;
+            while (t.finishedEpisodes() == 3) {
+                t.step();
+                stepsInAttempt++;
+            }
+            assertEquals(before + stepsInAttempt, t.totalSteps());
+        }
+
+        @Test
         void runEpisodesAddsN() {
             Trainer t = new Trainer(new Maze(4, 4), EXACT);
             t.runEpisodes(25);
