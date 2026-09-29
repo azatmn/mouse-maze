@@ -135,6 +135,12 @@ src/main/java/maze/
 └── util/SafeText             безопасный показ ввода в сообщениях
 ```
 
+## Документы
+
+- [Отчёт (Word)](docs/report/Отчет_ЛР2_Минязов.docx) и [PDF](docs/report/Отчет_ЛР2_Минязов.pdf); собирается скриптом `docs/report/build_report.js`
+- [Презентация](docs/presentation/Презентация_ЛР2_Минязов.pptx); собирается скриптом `docs/presentation/build_presentation.js`
+- UML-диаграммы (PlantUML): `docs/uml`
+
 ## Тесты
 
 ```bash
