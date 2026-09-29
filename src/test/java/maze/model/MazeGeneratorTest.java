@@ -130,6 +130,41 @@ class MazeGeneratorTest {
     }
 
     @Test
+    void extraPassagesSpreadOverWholeMaze() {
+        // при одном seed идеальный лабиринт одинаков, разница — снесённые «лишние» стены
+        int w = 20, h = 20;
+        Maze tree = MazeGenerator.generate(new MazeSpec(w, h, 0, 0, 0, 11L));
+        Maze loops = MazeGenerator.generate(new MazeSpec(w, h, 0, 0, 10, 11L));
+        int top = 0, bottom = 0;
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                Position p = new Position(x, y);
+                for (Direction d : new Direction[]{Direction.RIGHT, Direction.DOWN}) {
+                    if (loops.contains(p.step(d)) && tree.hasWall(p, d) && !loops.hasWall(p, d)) {
+                        if (y < h / 2) top++; else bottom++;
+                    }
+                }
+            }
+        }
+        assertTrue(top > 0 && bottom > 0, "сверху " + top + ", снизу " + bottom);
+    }
+
+    @Test
+    void itemsSpreadOverWholeMaze() {
+        Maze m = MazeGenerator.generate(new MazeSpec(10, 10, 10, 10, 0, 21L));
+        int top = 0, bottom = 0;
+        for (int y = 0; y < 10; y++) {
+            for (int x = 0; x < 10; x++) {
+                CellType t = m.cellAt(new Position(x, y));
+                if (t == CellType.WATER || t == CellType.SHOCK) {
+                    if (y < 5) top++; else bottom++;
+                }
+            }
+        }
+        assertTrue(top > 0 && bottom > 0, "сверху " + top + ", снизу " + bottom);
+    }
+
+    @Test
     void wallsNotBiasedToOneDirection() {
         // идеальный лабиринт из «змейки» тоже дерево; проверяем, что есть и горизонтальные, и вертикальные проходы примерно поровну
         Maze m = MazeGenerator.generate(new MazeSpec(30, 30, 0, 0, 0, 4L));

@@ -168,9 +168,6 @@ public final class Maze {
         queue.add(start);
         while (!queue.isEmpty()) {
             Position p = queue.poll();
-            if (p.equals(cheese)) {
-                break;
-            }
             for (Direction d : Direction.values()) {
                 if (canMove(p, d)) {
                     Position n = p.step(d);
