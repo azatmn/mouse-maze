@@ -117,6 +117,22 @@ class SettingsTest {
     }
 
     @Test
+    void freeStepsWithoutDiscountForbidden() {
+        // γ = 1 и бесплатные шаги: мыши незачем торопиться, она бегает туда-обратно у воды
+        assertEquals(List.of("stepReward"), problems(b -> b.gamma(1).stepReward(0)));
+        ok(b -> b.gamma(1).stepReward(-0.01));
+        ok(b -> b.gamma(0.99).stepReward(0));
+    }
+
+    @Test
+    void freeStepsMessageExplainsWhy() {
+        InvalidSettingsException e = assertThrows(InvalidSettingsException.class,
+                () -> Settings.builder().gamma(1).stepReward(0).build());
+        String msg = e.problems().getFirst().message();
+        assertTrue(msg.contains("γ") && msg.contains("торопиться"), msg);
+    }
+
+    @Test
     void countsInRange() {
         assertEquals(List.of("decayEpisodes"), problems(b -> b.decayEpisodes(0)));
         assertEquals(List.of("maxSteps"), problems(b -> b.maxSteps(0)));

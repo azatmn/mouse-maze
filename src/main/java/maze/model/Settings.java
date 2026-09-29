@@ -52,11 +52,17 @@ public record Settings(
                     + ") должна быть меньше награды за сыр (" + format(cheeseReward) + ")");
         }
         check.range("shockReward", "Награда за удар током", shockReward, -MAX_REWARD, true, 0);
-        check.range("stepReward", "Награда за шаг", stepReward, -MAX_REWARD, true, 0);
+        boolean stepOk = check.range("stepReward", "Награда за шаг", stepReward, -MAX_REWARD, true, 0);
         check.range("wallReward", "Награда за удар о стену", wallReward, -MAX_REWARD, true, 0);
 
         check.range("alpha", "Скорость обучения α", alpha, 0, false, 1);
-        check.range("gamma", "Коэффициент дисконтирования γ", gamma, 0, true, 1);
+        boolean gammaOk = check.range("gamma", "Коэффициент дисконтирования γ", gamma, 0, true, 1);
+        if (stepOk && gammaOk && gamma == 1 && stepReward == 0) {
+            // без скидки на даль и без платы за шаг длинный путь не хуже короткого:
+            // мышь бегает туда-обратно у воды (выпитую воду она не помнит) и не идёт к сыру
+            check.fail("stepReward", "Если γ = 1, награда за шаг должна быть меньше 0, "
+                    + "иначе мыши незачем торопиться к сыру");
+        }
         boolean startOk = check.range("epsilonStart", "Доля случайных шагов в начале", epsilonStart, 0, true, 1);
         boolean endOk = check.range("epsilonEnd", "Доля случайных шагов в конце", epsilonEnd, 0, true, 1);
         if (startOk && endOk && epsilonDecay && epsilonEnd > epsilonStart) {
