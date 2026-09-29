@@ -36,6 +36,7 @@ import maze.model.MazeSpec;
 import maze.model.Settings;
 import maze.model.Trainer;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -343,7 +344,7 @@ public class MazeApp extends Application {
         new FormDialog<>("Параметры обучения", "После применения мышь учится заново.", "Применить",
                 SettingsForm.FIELDS, sections,
                 SettingsForm.toTexts(controller.settings()), SettingsForm.toTexts(Settings.defaults()),
-                SettingsForm::parse)
+                SettingsForm::parse, Settings::warnings)
                 .showAndWait().ifPresent(controller::applySettings);
         message.setText("");
         refresh(true, System.nanoTime());
@@ -353,7 +354,7 @@ public class MazeApp extends Application {
         controller.pause();
         new FormDialog<>("Новый лабиринт", "Лабиринт строится случайно по seed; потом его можно поправить в редакторе.",
                 "Построить", MazeForm.FIELDS, Map.of(),
-                MazeForm.toTexts(spec), MazeForm.toTexts(START_SPEC), MazeForm::parse)
+                MazeForm.toTexts(spec), MazeForm.toTexts(START_SPEC), MazeForm::parse, newSpec -> List.of())
                 .showAndWait().ifPresent(newSpec -> {
                     spec = newSpec;
                     edited = false;

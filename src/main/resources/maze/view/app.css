@@ -78,6 +78,10 @@
     -fx-padding: 8 0 0 0;
 }
 
+.warning-text {
+    -fx-text-fill: #854f0b;
+}
+
 .error-text {
     -fx-text-fill: #a32d2d;
 }

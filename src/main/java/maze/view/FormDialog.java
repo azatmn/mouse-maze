@@ -35,7 +35,13 @@ class FormDialog<T> extends Dialog<T> {
     private final Map<String, Control> inputs = new LinkedHashMap<>();
     private final Label errors = new Label();
     private final Function<Map<String, String>, FormResult<T>> parser;
+    private final Function<T, List<String>> warningsOf;
+    private final Label warnings = new Label();
+    private Button applyButton;
+    private String applyText;
     private T accepted;
+    /** Значение, о котором уже предупредили: второе нажатие «Применить» с ним же — согласие. */
+    private T warned;
 
     /**
      * @param sections подзаголовки: ключ поля → заголовок группы, которая с него начинается
@@ -44,8 +50,11 @@ class FormDialog<T> extends Dialog<T> {
     FormDialog(String title, String header, String applyText,
                List<FormField> fields, Map<String, String> sections,
                Map<String, String> current, Map<String, String> defaults,
-               Function<Map<String, String>, FormResult<T>> parser) {
+               Function<Map<String, String>, FormResult<T>> parser,
+               Function<T, List<String>> warningsOf) {
         this.parser = parser;
+        this.warningsOf = warningsOf;
+        this.applyText = applyText;
         setTitle(title);
         setHeaderText(header);
 
@@ -97,14 +106,19 @@ class FormDialog<T> extends Dialog<T> {
         // Блок ошибок растёт по высоте под все строки, а не обрезается
         errors.setMinHeight(Region.USE_PREF_SIZE);
 
-        VBox content = new VBox(10, grid, new HBox(reset), errors);
+        warnings.getStyleClass().add("warning-text");
+        warnings.setWrapText(true);
+        warnings.setMaxWidth(520);
+        warnings.setMinHeight(Region.USE_PREF_SIZE);
+
+        VBox content = new VBox(10, grid, new HBox(reset), errors, warnings);
         getDialogPane().setContent(content);
         ButtonType apply = new ButtonType(applyText, ButtonBar.ButtonData.OK_DONE);
         ButtonType cancel = new ButtonType("Отмена", ButtonBar.ButtonData.CANCEL_CLOSE);
         getDialogPane().getButtonTypes().addAll(apply, cancel);
         getDialogPane().getStylesheets().add(MazeApp.stylesheet());
 
-        Button applyButton = (Button) getDialogPane().lookupButton(apply);
+        applyButton = (Button) getDialogPane().lookupButton(apply);
         applyButton.setId("apply");
         applyButton.addEventFilter(ActionEvent.ACTION, event -> {
             if (!tryAccept()) {
@@ -136,11 +150,23 @@ class FormDialog<T> extends Dialog<T> {
 
         switch (parser.apply(texts)) {
             case FormResult.Valid<T>(T value) -> {
-                accepted = value;
                 errors.setText("");
+                List<String> list = warningsOf.apply(value);
+                if (!list.isEmpty() && !value.equals(warned)) {
+                    // первое нажатие: предупредить и дать передумать; второе — применить
+                    warned = value;
+                    warnings.setText(String.join("\n", list));
+                    // короткая надпись: кнопки диалога одной ширины, длинная обрезалась бы
+                    applyButton.setText("Всё равно");
+                    return false;
+                }
+                accepted = value;
                 return true;
             }
             case FormResult.Invalid<T>(List<Problem> problems) -> {
+                warned = null;
+                warnings.setText("");
+                applyButton.setText(applyText);
                 showProblems(problems);
                 return false;
             }

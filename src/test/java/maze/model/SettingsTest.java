@@ -133,6 +133,27 @@ class SettingsTest {
     }
 
     @Test
+    void defaultsHaveNoWarnings() {
+        assertEquals(List.of(), Settings.defaults().warnings());
+    }
+
+    @Test
+    void cheapStepsWithFarSightWarn() {
+        // замер: γ ≥ 0.99 и шаг дешевле 0.1 — мышь часто не выучивает маршрут; шаг 0 — при любом γ
+        assertEquals(1, Settings.builder().gamma(0.99).stepReward(-0.09).build().warnings().size());
+        assertEquals(1, Settings.builder().gamma(1).stepReward(-0.01).build().warnings().size());
+        assertEquals(1, Settings.builder().gamma(0.5).stepReward(0).build().warnings().size());
+        assertEquals(List.of(), Settings.builder().gamma(0.99).stepReward(-0.1).build().warnings());
+        assertEquals(List.of(), Settings.builder().gamma(0.98).stepReward(-0.01).build().warnings());
+    }
+
+    @Test
+    void warningExplainsInPlainWords() {
+        String w = Settings.builder().gamma(1).stepReward(-0.01).build().warnings().getFirst();
+        assertTrue(w.contains("может не выучить"), w);
+    }
+
+    @Test
     void countsInRange() {
         assertEquals(List.of("decayEpisodes"), problems(b -> b.decayEpisodes(0)));
         assertEquals(List.of("maxSteps"), problems(b -> b.maxSteps(0)));
