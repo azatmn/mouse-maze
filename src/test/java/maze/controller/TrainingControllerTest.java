@@ -123,9 +123,11 @@ class TrainingControllerTest {
         c.setSpeed(10);
         c.start();
         c.tick(10 * SECOND);
-        c.tick(4 * SECOND + SECOND / 2);   // часы ушли назад: кадр только запоминает новое время
+        // часы ушли назад на 5.45 с: кадр только запоминает новое время.
+        // Если бы -54.5 шага попали в долг, дробная половина съела бы следующий шаг.
+        c.tick(4 * SECOND + SECOND * 55 / 100);
         assertEquals(0, totalSteps(c));
-        c.tick(4 * SECOND + SECOND * 6 / 10);
+        c.tick(4 * SECOND + SECOND * 65 / 100);
         assertEquals(1, totalSteps(c), "отрицательное время не должно превращаться в долг");
     }
 
