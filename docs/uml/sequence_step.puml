@@ -1,0 +1,39 @@
+@startuml sequence_step
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+title Диаграмма взаимодействия: кадр окна при обучении
+
+participant "AnimationTimer\n(MazeApp)" as timer
+participant "TrainingController" as ctl
+participant "Trainer" as tr
+participant "Mouse" as mouse
+participant "QTable" as q
+participant "Attempt\n(среда)" as env
+participant "MazeCanvas,\nScoreChart" as view
+
+timer -> ctl : tick(now)
+ctl -> ctl : сколько шагов пора сделать\n(скорость × время, не больше 500)
+loop для каждого шага
+  ctl -> tr : step()
+  tr -> env : position()
+  tr -> mouse : choose(клетка, ε)
+  mouse -> q : bestAll(клетка)
+  q --> mouse : лучшие направления
+  mouse --> tr : направление
+  tr -> env : step(направление)
+  env --> tr : StepResult(откуда, куда, награда, сыр?)
+  tr -> mouse : learn(StepResult, α, γ)
+  mouse -> q : get / max / set
+  opt попытка закончилась
+    tr -> tr : история += очки\nпроверить автостоп
+    tr -> env : new Attempt (снова со старта)
+  end
+  opt автостоп: путь только что выучен
+    ctl -> ctl : pause()
+  end
+end
+timer -> view : draw(лабиринт, попытка, таблица, путь)
+timer -> view : update(история) не чаще 4 раз в секунду
+@enduml

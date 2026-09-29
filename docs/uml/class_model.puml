@@ -1,0 +1,155 @@
+@startuml class_model
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+title Диаграмма классов: модель (пакет maze.model)
+
+enum Direction {
+  UP
+  RIGHT
+  DOWN
+  LEFT
+  +dx(): int
+  +dy(): int
+  +opposite(): Direction
+}
+
+class Position <<record>> {
+  +x: int
+  +y: int
+  +step(d: Direction): Position
+}
+
+enum CellType {
+  EMPTY
+  WATER
+  SHOCK
+  CHEESE
+}
+
+class Maze {
+  -eastWall: boolean[][]
+  -southWall: boolean[][]
+  -items: CellType[][]
+  -start: Position
+  -cheese: Position
+  +hasWall(p, d): boolean
+  +setWall(p, d, wall)
+  +cellAt(p): CellType
+  +setItem(p, type)
+  +setStart(p) / setCheese(p)
+  +canMove(p, d): boolean
+  +next(p, d): Position
+  +shortestPath(): List<Position>
+  +isCheeseReachable(): boolean
+  +copy(): Maze
+}
+
+class MazeSpec <<record>> {
+  +width, height: int
+  +water, shock: int
+  +loopPercent: int
+  +seed: long
+  +demo(): MazeSpec
+}
+
+class MazeGenerator <<utility>> {
+  +generate(spec): Maze
+  -carve(maze, random)
+  -openLoops(maze, percent, random)
+  -placeItems(maze, spec, random)
+}
+
+class Settings <<record>> {
+  +cheeseReward, waterReward: double
+  +shockReward, stepReward, wallReward: double
+  +alpha, gamma: double
+  +epsilonStart, epsilonEnd: double
+  +epsilonDecay: boolean
+  +decayEpisodes, maxSteps: int
+  +stableEpisodes: int
+  +seed: long
+  +epsilonAt(finished): double
+  +warnings(): List<String>
+}
+
+class "Settings.Builder" as Builder
+
+class InvalidSettingsException {
+  +problems(): List<Problem>
+}
+
+class Attempt {
+  -drunk: boolean[][]
+  -position: Position
+  -score: double
+  -steps: int
+  +step(d: Direction): StepResult
+  +score(): double
+  +isFinished(): boolean
+  +hasWater(p): boolean
+}
+
+class StepResult <<record>> {
+  +from: Position
+  +direction: Direction
+  +to: Position
+  +reward: double
+  +terminal: boolean
+}
+
+class QTable {
+  -values: double[][][]
+  +get(p, d): double
+  +set(p, d, value)
+  +max(p): double
+  +best(p): Direction
+  +bestAll(p): List<Direction>
+  +greedyPath(maze): GreedyPath
+}
+
+class Mouse {
+  -random: Random
+  +choose(p, epsilon): Direction
+  +learn(step, alpha, gamma)
+}
+
+class Trainer {
+  -history: List<Double>
+  -stableCount: int
+  -learnedAt: int
+  +step(): StepResult
+  +runEpisode()
+  +runEpisodes(n)
+  +epsilon(): double
+  +history(): List<Double>
+  +isLearned(): boolean
+  +bestPath(): GreedyPath
+}
+
+class GreedyPath <<record>> {
+  +cells: List<Position>
+  +reachesCheese: boolean
+}
+
+Maze --> CellType
+Maze --> Position
+MazeGenerator ..> MazeSpec
+MazeGenerator ..> Maze : создаёт
+Settings +-- Builder
+Settings ..> InvalidSettingsException : бросает
+MazeSpec ..> InvalidSettingsException : бросает
+Trainer o-- Maze
+Trainer --> Settings
+Trainer *-- QTable
+Trainer *-- Mouse
+Trainer *-- Attempt : текущая
+Mouse --> QTable
+Attempt --> Maze
+Attempt ..> StepResult : создаёт
+Mouse ..> StepResult
+QTable ..> GreedyPath
+Position ..> Direction
+@enduml

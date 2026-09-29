@@ -1,0 +1,28 @@
+@startuml component
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+title Диаграмма компонентов (модуль maze)
+
+package "Модуль maze" {
+  component "maze\n(Launcher)" as launcher
+  component "maze.view\n(окно JavaFX:\nMazeApp, MazeCanvas,\nScoreChart, FormDialog)" as view
+  component "maze.controller\n(логика окна:\nTrainingController, MazeEditor,\nSettingsForm, MazeForm)" as controller
+  component "maze.model\n(лабиринт, генератор,\nсреда, Q-learning)" as model
+  component "maze.util\n(SafeText)" as util
+}
+
+component "JavaFX\n(javafx.controls,\njavafx.graphics)" as javafx
+component "JUnit 6\n(только тесты)" as junit
+
+launcher ..> view
+launcher ..> javafx
+view ..> controller
+view ..> model
+view ..> javafx
+controller ..> model
+controller ..> util
+junit ..> model
+junit ..> controller
+@enduml

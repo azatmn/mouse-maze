@@ -1,0 +1,100 @@
+@startuml class_app
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+title Диаграмма классов: контроллер и окно
+
+package maze.controller {
+  class TrainingController {
+    -running: boolean
+    -autoStop: boolean
+    -speed: int
+    -stepDebt: long
+    +start() / pause() / toggleRunning()
+    +stepOnce()
+    +tick(nowNanos)
+    +trainEpisodes(n): int
+    +reset()
+    +applySettings(s)
+    +setMaze(m) / mazeEdited()
+    +statusMessage(): String
+  }
+  class MazeEditor {
+    +hitTest(maze, x, y, cell): Hit
+    +apply(tool, x, y, cell): Result
+  }
+  enum Tool {
+    WALL
+    WATER
+    SHOCK
+    START
+    CHEESE
+    ERASE
+  }
+  interface "Hit" as Hit <<sealed>>
+  interface "Result" as Result <<sealed>>
+  class FormField <<record>> {
+    +key, label: String
+    +kind: Kind
+    +read(text): Read
+  }
+  interface "FormResult<T>" as FormResult <<sealed>>
+  class SettingsForm <<utility>> {
+    +FIELDS: List<FormField>
+    +parse(texts): FormResult<Settings>
+  }
+  class MazeForm <<utility>> {
+    +FIELDS: List<FormField>
+    +parse(texts): FormResult<MazeSpec>
+  }
+  class SpeedScale <<utility>>
+  class Texts <<utility>> {
+    +attempts(n): String
+    +score(v): String
+  }
+}
+
+package maze.view {
+  class MazeApp {
+    -timer: AnimationTimer
+    +start(stage)
+  }
+  class MazeCanvas {
+    +draw(maze, attempt, table, path, arrows)
+    +toMazeX(x) / toMazeY(y)
+  }
+  class ScoreChart {
+    +update(history)
+  }
+  class "FormDialog<T>" as FormDialog
+}
+
+package maze.util {
+  class SafeText <<utility>>
+}
+
+class "Application\n(JavaFX)" as App
+class "maze.model.Trainer" as Trainer
+
+App <|-- MazeApp
+MazeApp *-- MazeCanvas
+MazeApp *-- ScoreChart
+MazeApp --> TrainingController
+MazeApp --> MazeEditor
+MazeApp ..> FormDialog
+FormDialog ..> SettingsForm
+FormDialog ..> MazeForm
+MazeEditor --> TrainingController
+MazeEditor +-- Tool
+MazeEditor +-- Hit
+MazeEditor +-- Result
+TrainingController *-- Trainer
+SettingsForm ..> FormField
+MazeForm ..> FormField
+SettingsForm ..> FormResult
+FormField ..> SafeText
+MazeApp ..> SpeedScale
+MazeApp ..> Texts
+@enduml

@@ -1,0 +1,46 @@
+@startuml usecase
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+left to right direction
+title Диаграмма прецедентов
+
+actor "Пользователь" as user
+actor "Мышь (агент)" as mouse
+
+rectangle "Мышь в лабиринте" {
+  usecase "Построить случайный лабиринт\n(размер, вода, ток, seed)" as UC1
+  usecase "Изменить схему в редакторе" as UC2
+  usecase "Задать награды и параметры" as UC3
+  usecase "Запустить / приостановить обучение" as UC4
+  usecase "Сделать один шаг" as UC5
+  usecase "Обучить N попыток" as UC6
+  usecase "Посмотреть выученный путь\nи стрелки" as UC7
+  usecase "Следить за суммой выигрыша\n(график, счётчики)" as UC8
+  usecase "Сбросить обучение" as UC9
+  usecase "Проверить ввод" as UCV
+  usecase "Выбрать направление" as M1
+  usecase "Получить награду от среды" as M2
+  usecase "Обновить Q-таблицу" as M3
+}
+
+user --> UC1
+user --> UC2
+user --> UC3
+user --> UC4
+user --> UC5
+user --> UC6
+user --> UC7
+user --> UC8
+user --> UC9
+UC1 ..> UCV : <<include>>
+UC3 ..> UCV : <<include>>
+UC6 ..> UCV : <<include>>
+UC4 ..> M1 : <<include>>
+mouse --> M1
+mouse --> M2
+mouse --> M3
+M1 ..> M2 : <<include>>
+M2 ..> M3 : <<include>>
+@enduml

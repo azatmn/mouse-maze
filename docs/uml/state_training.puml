@@ -1,0 +1,28 @@
+@startuml state_training
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+title Диаграмма состояний: обучение в окне
+
+[*] --> Pause : запуск программы
+
+state "Пауза" as Pause
+state "Обучение идёт" as Running {
+  state "Мышь в пути" as OnWay
+  state "Попытка окончена" as Done
+  [*] --> OnWay
+  OnWay --> OnWay : шаг\n[не сыр и шагов < лимита]
+  OnWay --> Done : нашла сыр\nили лимит шагов
+  Done --> OnWay : новая попытка со старта\n(выученное сохраняется)
+}
+state "Выучила маршрут" as Learned
+
+Pause --> Running : Старт
+Running --> Pause : Пауза
+Running --> Learned : путь не менялся N попыток\n[автостоп включён]
+Learned --> Running : Старт (автостоп\nбольше не срабатывает)
+Pause --> Pause : Шаг, Обучить N;\nсброс, новый лабиринт, правка,\nпараметры / обучение заново
+Running --> Pause : Шаг / Обучить N /\nредактор / диалог
+Learned --> Pause : Сброс, новый лабиринт,\nправка, параметры
+@enduml
