@@ -174,6 +174,9 @@ class MazeEditorTest {
             assertEquals(new Result.Changed(), click(Tool.ERASE, cx(2), cx(2)));
             assertEquals(CellType.EMPTY, maze.cellAt(p(2, 2)));
             assertEquals(new Result.Unchanged(), click(Tool.ERASE, cx(2), cx(2)));
+            maze.setItem(p(1, 2), CellType.SHOCK);
+            assertEquals(new Result.Changed(), click(Tool.ERASE, cx(1), cx(2)));
+            assertEquals(CellType.EMPTY, maze.cellAt(p(1, 2)));
             assertEquals(new Result.Unchanged(), click(Tool.ERASE, 1, cx(1)), "границу не стереть, но и не ошибка");
         }
 

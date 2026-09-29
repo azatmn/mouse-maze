@@ -28,5 +28,8 @@ class TextsTest {
         assertEquals("−0.25", Texts.score(-0.25));
         assertEquals("+0.3", Texts.score(0.1 + 0.2), "без хвоста 0.30000000000000004");
         assertEquals("—", Texts.score(Double.NaN));
+        assertEquals("0", Texts.score(0.001), "округлилось до нуля — без знака");
+        assertEquals("0", Texts.score(-0.004));
+        assertEquals("0", Texts.score(-0.0));
     }
 }

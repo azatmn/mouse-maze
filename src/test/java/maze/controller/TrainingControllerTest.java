@@ -123,10 +123,43 @@ class TrainingControllerTest {
         c.setSpeed(10);
         c.start();
         c.tick(10 * SECOND);
-        c.tick(5 * SECOND);
+        c.tick(4 * SECOND + SECOND / 2);   // часы ушли назад: кадр только запоминает новое время
         assertEquals(0, totalSteps(c));
-        c.tick(5 * SECOND + SECOND / 10);
-        assertEquals(1, totalSteps(c));
+        c.tick(4 * SECOND + SECOND * 6 / 10);
+        assertEquals(1, totalSteps(c), "отрицательное время не должно превращаться в долг");
+    }
+
+    @Test
+    void hugeTimeJumpCountsAsOneSecond() {
+        // 3e15 нс * 5000 шагов/с переполнило бы long и дало отрицательный долг
+        TrainingController c = new TrainingController(new Maze(50, 50), FAST.toBuilder().maxSteps(1_000_000).build());
+        c.setSpeed(MAX_SPEED);
+        c.start();
+        c.tick(0);
+        c.tick(3_000_000_000_000_000L);
+        assertEquals(MAX_STEPS_PER_TICK, totalSteps(c));
+    }
+
+    @Test
+    void stepsPerTickLimitExactBoundary() {
+        TrainingController c = new TrainingController(new Maze(50, 50), FAST.toBuilder().maxSteps(1_000_000).build());
+        c.setSpeed(MAX_STEPS_PER_TICK + 1);
+        c.start();
+        c.tick(0);
+        c.tick(SECOND);
+        assertEquals(MAX_STEPS_PER_TICK, totalSteps(c));
+    }
+
+    @Test
+    void secondStartDoesNotLoseTime() {
+        TrainingController c = new TrainingController(new Maze(20, 20), FAST);
+        c.setSpeed(10);
+        c.start();
+        c.tick(0);
+        c.tick(SECOND / 2);
+        c.start();
+        c.tick(SECOND);
+        assertEquals(10, totalSteps(c));
     }
 
     @Test

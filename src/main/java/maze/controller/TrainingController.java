@@ -97,10 +97,8 @@ public class TrainingController {
 
         long due = stepDebt / NANOS_PER_SECOND;
         stepDebt %= NANOS_PER_SECOND;
-        if (due > MAX_STEPS_PER_TICK) {
-            due = MAX_STEPS_PER_TICK;
-            stepDebt = 0; // не успели — не догоняем, просто идём медленнее
-        }
+        // не успеваем — не догоняем, просто идём медленнее
+        due = Math.min(due, MAX_STEPS_PER_TICK);
         for (int i = 0; i < due; i++) {
             boolean wasLearned = trainer.learnedAt() >= 0;
             trainer.step();
