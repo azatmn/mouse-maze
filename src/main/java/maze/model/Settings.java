@@ -90,8 +90,9 @@ public record Settings(
 
         /** Проверяет, что value в (min, max] или [min, max]. Возвращает true, если всё в порядке. */
         boolean range(String field, String title, double value, double min, boolean minIncluded, double max) {
+            // NaN не проходит ни одно сравнение, бесконечности — за границами, поэтому отсекаются здесь же
             boolean aboveMin = minIncluded ? value >= min : value > min;
-            if (Double.isFinite(value) && aboveMin && value <= max) {
+            if (aboveMin && value <= max) {
                 return true;
             }
             String allowed = (minIncluded ? "от " : "больше ") + format(min) + " до " + format(max);

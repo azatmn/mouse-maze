@@ -251,6 +251,42 @@ class TrainerTest {
         }
 
         @Test
+        void brokenPathForgetsLearned() {
+            Trainer t = new Trainer(corridor(2), EXACT.toBuilder().stableEpisodes(3).epsilonStart(0).build());
+            t.runEpisodes(5);
+            assertTrue(t.isLearned());
+            // портим таблицу: лучшая стрелка со старта — в стену, путь теперь петля
+            t.table().set(p(0, 1), UP, -1e9);
+            t.table().set(p(0, 1), DOWN, 1e9);
+            t.runEpisode();
+            assertFalse(t.bestPath().reachesCheese());
+            assertFalse(t.isLearned());
+            assertEquals(3, t.learnedAt(), "первое выучивание не забывается");
+        }
+
+        @Test
+        void changedPathStartsCountingAgain() {
+            // 3x2: старт (0,1), сыр (2,0). Путь A — низом, путь B — верхом. α крошечная, чтобы обучение не мешало
+            Maze m = new Maze(3, 2);
+            Trainer t = new Trainer(m, EXACT.toBuilder().alpha(0.001).epsilonStart(0).stableEpisodes(3).build());
+            t.table().set(p(0, 1), RIGHT, 1000);
+            t.table().set(p(1, 1), RIGHT, 1000);
+            t.table().set(p(2, 1), UP, 1000);
+            t.runEpisodes(2);
+            assertEquals(List.of(p(0, 1), p(1, 1), p(2, 1), p(2, 0)), t.bestPath().cells());
+            assertFalse(t.isLearned(), "путь A стабилен 2 попытки из 3");
+
+            t.table().set(p(0, 1), UP, 2000);
+            t.table().set(p(0, 0), RIGHT, 2000);
+            t.table().set(p(1, 0), RIGHT, 2000);
+            t.runEpisode();
+            assertEquals(List.of(p(0, 1), p(0, 0), p(1, 0), p(2, 0)), t.bestPath().cells());
+            assertFalse(t.isLearned(), "путь сменился — счёт начинается заново");
+            t.runEpisodes(2);
+            assertTrue(t.isLearned());
+        }
+
+        @Test
         void neverLearnedWhenCheeseUnreachable() {
             Maze closed = corridor(3);
             closed.setWall(p(0, 1), UP, true);
