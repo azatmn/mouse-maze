@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Окно" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="maze.Launcher" />
+    <module name="mouse-maze" />
+    <option name="VM_PARAMETERS" value="--enable-native-access=javafx.graphics" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
