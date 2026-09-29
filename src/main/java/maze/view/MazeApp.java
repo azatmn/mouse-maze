@@ -47,7 +47,7 @@ import java.util.Map;
 public class MazeApp extends Application {
 
     /** Лабиринт при запуске программы. */
-    static final MazeSpec START_SPEC = new MazeSpec(12, 9, 3, 4, 15, 42L);
+    static final MazeSpec START_SPEC = MazeSpec.demo();
     /** График перерисовываем не чаще 4 раз в секунду — он дороже лабиринта. */
     private static final long CHART_INTERVAL_NANOS = 250_000_000L;
     private static final FormField EPISODES = new FormField("episodes", "Число попыток", FormField.Kind.INTEGER);

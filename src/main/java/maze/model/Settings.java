@@ -163,13 +163,15 @@ public record Settings(
         private double shockReward = -50;
         private double stepReward = -1;
         private double wallReward = -5;
-        private double alpha = 0.5;
-        private double gamma = 0.95;
+        // α, γ, доля случайных шагов и лимит подобраны перебором (см. DefaultsTest):
+        // на 60 отложенных лабиринтах до 30x30 мышь нашла путь во всех за 1000 попыток
+        private double alpha = 0.2;
+        private double gamma = 0.995;
         private double epsilonStart = 0.3;
         private double epsilonEnd = 0.01;
         private boolean epsilonDecay = true;
         private int decayEpisodes = 300;
-        private int maxSteps = 1000;
+        private int maxSteps = 4000;
         private int stableEpisodes = 50;
         private long seed = 42;
 

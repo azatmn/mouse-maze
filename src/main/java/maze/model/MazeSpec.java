@@ -14,6 +14,14 @@ import java.util.List;
  */
 public record MazeSpec(int width, int height, int water, int shock, int loopPercent, long seed) {
 
+    /**
+     * Лабиринт при запуске программы: подобран так, чтобы кратчайший путь к сыру шёл через молнию,
+     * а выученный — обходил её и заходил за водой (см. DefaultsTest).
+     */
+    public static MazeSpec demo() {
+        return new MazeSpec(12, 9, 4, 6, 20, 9L);
+    }
+
     public MazeSpec {
         List<InvalidSettingsException.Problem> problems = new ArrayList<>();
         boolean widthOk = width >= 1 && width <= Maze.MAX_SIZE;
