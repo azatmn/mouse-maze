@@ -1,5 +1,6 @@
 package maze.controller;
 
+import maze.model.Attempt;
 import maze.model.Maze;
 import maze.model.Settings;
 import maze.model.Trainer;
@@ -33,6 +34,9 @@ public class TrainingController {
     private Trainer trainer;
 
     private boolean running;
+    /** Показ выученного пути: отдельная попытка без случайных шагов и без обучения. */
+    private Attempt replay;
+    private boolean replaying;
     private boolean autoStop = true;
     private int speed = DEFAULT_SPEED;
     /** Время прошлого кадра; пока его нет (сразу после старта), первый кадр только запоминает время. */
@@ -52,9 +56,9 @@ public class TrainingController {
         if (running) {
             return;
         }
+        stopReplay();
         running = true;
-        hasLastTick = false; // время, проведённое на паузе, не должно превратиться в шаги
-        stepDebt = 0;
+        restartClock();
     }
 
     public void pause() {
@@ -77,29 +81,25 @@ public class TrainingController {
     /** Кнопка «Шаг»: ставит на паузу и делает ровно один шаг мыши. */
     public void stepOnce() {
         pause();
+        stopReplay();
         trainer.step();
     }
 
     /** Очередной кадр окна. nowNanos — текущее время в наносекундах. */
     public void tick(long nowNanos) {
-        if (!running) {
+        if (!running && !replaying) {
             return;
         }
-        if (!hasLastTick || nowNanos < lastTick) {
-            hasLastTick = true;
-            lastTick = nowNanos;
-            return;
-        }
-        // Больше секунды за кадр не учитываем: иначе после долгого «замерзания» набежит гигантский долг
-        long elapsed = Math.min(nowNanos - lastTick, NANOS_PER_SECOND);
-        lastTick = nowNanos;
-        stepDebt += elapsed * speed;
-
-        long due = stepDebt / NANOS_PER_SECOND;
-        stepDebt %= NANOS_PER_SECOND;
-        // не успеваем — не догоняем, просто идём медленнее
-        due = Math.min(due, MAX_STEPS_PER_TICK);
+        long due = dueSteps(nowNanos);
         for (int i = 0; i < due; i++) {
+            if (replaying) {
+                replay.step(trainer.table().best(replay.position()));
+                if (replay.isFinished()) {
+                    replaying = false;
+                    return;
+                }
+                continue;
+            }
             boolean wasLearned = trainer.learnedAt() >= 0;
             trainer.step();
             if (autoStop && !wasLearned && trainer.learnedAt() >= 0) {
@@ -107,6 +107,29 @@ public class TrainingController {
                 return;
             }
         }
+    }
+
+    /** Сколько шагов пора сделать к этому кадру (скорость × прошедшее время, не больше лимита за кадр). */
+    private long dueSteps(long nowNanos) {
+        if (!hasLastTick || nowNanos < lastTick) {
+            hasLastTick = true;
+            lastTick = nowNanos;
+            return 0;
+        }
+        // Больше секунды за кадр не учитываем: иначе после долгого «замерзания» набежит гигантский долг
+        long elapsed = Math.min(nowNanos - lastTick, NANOS_PER_SECOND);
+        lastTick = nowNanos;
+        stepDebt += elapsed * speed;
+        long due = stepDebt / NANOS_PER_SECOND;
+        stepDebt %= NANOS_PER_SECOND;
+        // не успеваем — не догоняем, просто идём медленнее
+        return Math.min(due, MAX_STEPS_PER_TICK);
+    }
+
+    /** Время, проведённое на паузе, не должно превратиться в шаги. */
+    private void restartClock() {
+        hasLastTick = false;
+        stepDebt = 0;
     }
 
     /** Скорость в шагах в секунду; значения вне допустимого диапазона прижимаются к границе. */
@@ -136,6 +159,7 @@ public class TrainingController {
      */
     public int trainEpisodes(int count) {
         pause();
+        stopReplay();
         int target = Math.min(Math.max(count, 0), MAX_EPISODES_AT_ONCE);
         long start = trainer.totalSteps();
         int done = 0;
@@ -150,6 +174,7 @@ public class TrainingController {
     /** Кнопка «Сброс»: мышь забывает всё выученное; лабиринт и настройки те же. */
     public void reset() {
         pause();
+        stopReplay();
         trainer = new Trainer(maze, settings);
     }
 
@@ -170,6 +195,39 @@ public class TrainingController {
         reset();
     }
 
+    /**
+     * Кнопка «Пройти выученный путь»: обучение на паузе, мышь идёт от старта по лучшим стрелкам —
+     * без случайных шагов и ничего не выучивая. Шагает по tick со скоростью слайдера.
+     *
+     * @return false, если выученного пути до сыра пока нет
+     */
+    public boolean startReplay() {
+        pause();
+        stopReplay();
+        if (!trainer.bestPath().reachesCheese()) {
+            return false;
+        }
+        replay = new Attempt(maze, settings);
+        replaying = true;
+        restartClock();
+        return true;
+    }
+
+    /** Мышь сейчас идёт по выученному пути. */
+    public boolean isReplaying() {
+        return replaying;
+    }
+
+    /** Попытка показа (идёт или уже закончилась) или null, если показа нет. */
+    public Attempt replay() {
+        return replay;
+    }
+
+    public void stopReplay() {
+        replay = null;
+        replaying = false;
+    }
+
     public Maze maze() {
         return maze;
     }
@@ -184,6 +242,11 @@ public class TrainingController {
 
     /** Что сообщить пользователю: сыр недостижим, мышь выучила маршрут или ничего. */
     public String statusMessage() {
+        if (replay != null) {
+            return replaying
+                    ? "Мышь идёт по выученному пути: шаг " + replay.steps()
+                    : "Мышь прошла выученный путь: " + Texts.steps(replay.steps()) + ", очки " + Texts.score(replay.score());
+        }
         if (!maze.isCheeseReachable()) {
             return "Сыр недостижим: мышь не сможет его найти";
         }

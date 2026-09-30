@@ -19,6 +19,12 @@ class TextsTest {
         assertEquals(expected, Texts.attempts(n));
     }
 
+    @ParameterizedTest
+    @CsvSource({"0, 0 шагов", "1, 1 шаг", "3, 3 шага", "5, 5 шагов", "11, 11 шагов", "21, 21 шаг", "24, 24 шага", "112, 112 шагов"})
+    void stepsAgreeWithNumber(int n, String expected) {
+        assertEquals(expected, Texts.steps(n));
+    }
+
     @Test
     void scoreHasSignAndNoNoise() {
         assertEquals("+87", Texts.score(87));

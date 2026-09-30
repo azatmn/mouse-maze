@@ -11,19 +11,25 @@ public final class Texts {
 
     /** «N попытку / попытки / попыток» — для фразы «за N ...». */
     public static String attempts(int n) {
+        return n + " " + plural(n, "попытку", "попытки", "попыток");
+    }
+
+    /** Форма слова для числа n: одна (1, 21), две–четыре (2–4, 22–24), остальные. */
+    private static String plural(int n, String one, String few, String many) {
         int lastTwo = Math.abs(n) % 100;
         int last = lastTwo % 10;
-        String word;
         if (lastTwo >= 11 && lastTwo <= 14) {
-            word = "попыток";
-        } else if (last == 1) {
-            word = "попытку";
-        } else if (last >= 2 && last <= 4) {
-            word = "попытки";
-        } else {
-            word = "попыток";
+            return many;
         }
-        return n + " " + word;
+        if (last == 1) {
+            return one;
+        }
+        return last >= 2 && last <= 4 ? few : many;
+    }
+
+    /** «N шаг / шага / шагов». */
+    public static String steps(int n) {
+        return n + " " + plural(n, "шаг", "шага", "шагов");
     }
 
     /** Очки со знаком и не больше чем двумя знаками после точки: «+87», «−0.5», «0». Не число — «—». */

@@ -314,7 +314,111 @@ class TrainingControllerTest {
         assertEquals("Сыр недостижим: мышь не сможет его найти", c.statusMessage());
     }
 
-    private static long totalSteps(TrainingController c) {
+    // ---------- «Пройти выученный путь» ----------
+
+    /** Коридор, который уже выучен: путь к сыру известен. */
+    private static TrainingController learnedCorridor() {
+        TrainingController c = new TrainingController(new Maze(1, 4), FAST);
+        c.trainEpisodes(200);
+        assertTrue(c.trainer().bestPath().reachesCheese());
+        return c;
+    }
+
+    @Test
+    void replayRefusedWhenNothingLearned() {
+        TrainingController c = controller();
+        assertFalse(c.startReplay());
+        assertFalse(c.isReplaying());
+        assertNull(c.replay());
+    }
+
+    @Test
+    void replayStartsAtStartAndPausesTraining() {
+        TrainingController c = learnedCorridor();
+        c.start();
+        assertTrue(c.startReplay());
+        assertTrue(c.isReplaying());
+        assertFalse(c.isRunning());
+        assertEquals(c.maze().start(), c.replay().position());
+        assertEquals(0, c.replay().steps());
+    }
+
+    @Test
+    void replayWalksBestPathBySpeedWithoutLearning() {
+        TrainingController c = learnedCorridor();
+        long trainedSteps = c.trainer().totalSteps();
+        int episodes = c.trainer().finishedEpisodes();
+        double q = c.trainer().table().get(c.maze().start(), Direction.UP);
+        c.setSpeed(2);
+        c.startReplay();
+        c.tick(0);
+        c.tick(SECOND / 2);                      // 0.5 с при 2 шагах/с — один шаг
+        assertEquals(1, c.replay().steps());
+        assertEquals(c.trainer().bestPath().cells().get(1), c.replay().position());
+        c.tick(SECOND * 5);                      // остальные два шага и конец
+        assertTrue(c.replay().reachedCheese());
+        assertFalse(c.isReplaying(), "дошла — показ окончен");
+        assertEquals(3, c.replay().steps());
+        assertEquals(trainedSteps, c.trainer().totalSteps(), "мышь не обучалась");
+        assertEquals(episodes, c.trainer().finishedEpisodes());
+        assertEquals(q, c.trainer().table().get(c.maze().start(), Direction.UP));
+    }
+
+    @Test
+    void replayIsDeterministic() {
+        TrainingController c = learnedCorridor();
+        c.setSpeed(MAX_SPEED);
+        c.startReplay();
+        c.tick(0);
+        c.tick(SECOND);
+        double first = c.replay().score();
+        c.startReplay();
+        c.tick(2 * SECOND);
+        c.tick(3 * SECOND);
+        assertEquals(first, c.replay().score());
+        assertEquals(97, first, 1e-9, "три шага по коридору: −1 −1 +99");
+    }
+
+    @Test
+    void replayEndsWhenTrainingOrMazeChanges() {
+        TrainingController c = learnedCorridor();
+        c.startReplay();
+        c.start();
+        assertFalse(c.isReplaying());
+        assertNull(c.replay());
+
+        c.startReplay();
+        c.stepOnce();
+        assertNull(c.replay());
+        c.startReplay();
+        c.trainEpisodes(1);
+        assertNull(c.replay());
+        c.startReplay();
+        c.reset();
+        assertNull(c.replay());
+    }
+
+    @Test
+    void stopReplayClears() {
+        TrainingController c = learnedCorridor();
+        c.startReplay();
+        c.stopReplay();
+        assertFalse(c.isReplaying());
+        assertNull(c.replay());
+    }
+
+    @Test
+    void replayMessages() {
+        TrainingController c = learnedCorridor();
+        c.setSpeed(MAX_SPEED);
+        c.startReplay();
+        assertEquals("Мышь идёт по выученному пути: шаг 0", c.statusMessage());
+        c.tick(0);
+        c.tick(SECOND);
+        assertEquals("Мышь прошла выученный путь: 3 шага, очки +97", c.statusMessage());
+    }
+
+        private static long totalSteps(TrainingController c) {
         // шаги законченных попыток не хранятся, но в этих тестах попытки не заканчиваются
         assertEquals(0, c.trainer().finishedEpisodes());
         return c.trainer().attempt().steps();
