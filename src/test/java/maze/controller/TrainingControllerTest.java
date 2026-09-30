@@ -365,6 +365,18 @@ class TrainingControllerTest {
     }
 
     @Test
+    void replayStartsItsOwnClock() {
+        // до показа шло обучение и часы уже тикали; время до нажатия кнопки не превращается в шаги показа
+        TrainingController c = learnedCorridor();
+        c.setSpeed(2);
+        c.start();
+        c.tick(0);
+        c.startReplay();
+        c.tick(10 * SECOND);
+        assertEquals(0, c.replay().steps());
+    }
+
+    @Test
     void replayIsDeterministic() {
         TrainingController c = learnedCorridor();
         c.setSpeed(MAX_SPEED);

@@ -117,6 +117,33 @@ class ViewportTest {
     }
 
     @Test
+    void panBackFromEdgeMovesAtOnce() {
+        // упёрлись в край и тянем дальше — назад лабиринт должен пойти сразу, без «мёртвой зоны»
+        v.zoomAt(4, 200, 150, W, H, COLS, ROWS);
+        v.pan(10_000, 0, W, H, COLS, ROWS);
+        v.pan(-40, 0, W, H, COLS, ROWS);
+        assertEquals(-40, layout().left(), 1e-9);
+    }
+
+    @Test
+    void zoomAtCornerThenPanMovesAtOnce() {
+        // приближение у угла холста упирает лабиринт в край; следующий сдвиг — сразу виден
+        v.zoomAt(2, 0, 0, W, H, COLS, ROWS);
+        v.pan(-10, 0, W, H, COLS, ROWS);
+        assertEquals(-10, layout().left(), 1e-9);
+    }
+
+    @Test
+    void brokenGesturePointKeepsPictureFinite() {
+        v.zoomAt(2, Double.NaN, 10, W, H, COLS, ROWS);
+        Layout l = layout();
+        assertTrue(Double.isFinite(l.left()) && Double.isFinite(l.top()), l.toString());
+        v.pan(Double.NaN, 5, W, H, COLS, ROWS);
+        l = layout();
+        assertTrue(Double.isFinite(l.left()) && Double.isFinite(l.top()), l.toString());
+    }
+
+    @Test
     void zoomNeverLeavesPanOutsideLimits() {
         v.zoomAt(4, 0, 0, W, H, COLS, ROWS);
         v.zoomAt(0.25, 400, 300, W, H, COLS, ROWS);   // обратно к вписанному — снова по центру

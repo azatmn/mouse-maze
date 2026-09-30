@@ -42,8 +42,8 @@ public final class Viewport {
 
     /** Умножить масштаб на factor так, чтобы точка (px, py) холста осталась над той же точкой лабиринта. */
     public void zoomAt(double factor, double px, double py, double w, double h, int cols, int rows) {
-        if (!(factor > 0) || !Double.isFinite(factor)) {
-            return;  // жест иногда присылает 0, NaN или бесконечность
+        if (!(factor > 0)) {
+            return;  // жест иногда присылает 0 или NaN; бесконечность прижмёт clamp
         }
         Layout before = layout(w, h, cols, rows);
         if (!(before.cell() > 0)) {
@@ -58,21 +58,16 @@ public final class Viewport {
         layout(w, h, cols, rows);  // прижать сдвиг к краям
     }
 
-    /** Сдвинуть лабиринт на (dx, dy) пикселей. */
+    /** Сдвинуть лабиринт на (dx, dy) пикселей; не число сбрасывает сдвиг к центру. */
     public void pan(double dx, double dy, double w, double h, int cols, int rows) {
-        if (!Double.isFinite(dx) || !Double.isFinite(dy)) {
-            return;
-        }
         panX += dx;
         panY += dy;
-        layout(w, h, cols, rows);
+        layout(w, h, cols, rows);  // прижать к краям сразу, иначе упор в край копит «мёртвую зону»
     }
 
     /** Снова вписать лабиринт целиком. */
     public void reset() {
-        zoom = 1;
-        panX = 0;
-        panY = 0;
+        zoom = 1;  // сдвиг обнулит layout: при масштабе 1 лабиринт помещается и стоит по центру
     }
 
     private double baseCell(double w, double h, int cols, int rows) {
