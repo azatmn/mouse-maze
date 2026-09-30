@@ -1,11 +1,13 @@
 package maze.view;
 
+import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.scene.shape.StrokeLineJoin;
+import maze.controller.Viewport;
 import maze.model.Attempt;
 import maze.model.CellType;
 import maze.model.Direction;
@@ -20,6 +22,9 @@ import java.util.List;
  * Лабиринт на экране: клетки с водой, током и сыром, тонкие стены, мышь,
  * по желанию — выученный путь и стрелки лучших направлений.
  * Растягивается под размер окна, клетки остаются квадратными.
+ * <p>
+ * Масштаб и сдвиг — как в картах на Mac: щипок двумя пальцами приближает, движение двумя пальцами
+ * (или колесо) двигает, Cmd + колесо приближает, перетаскивание мышью двигает (кроме режима редактора).
  */
 public class MazeCanvas extends Pane {
 
@@ -41,6 +46,12 @@ public class MazeCanvas extends Pane {
     private static final double MARGIN = 6;
 
     private final Canvas canvas = new Canvas();
+    private final Viewport viewport = new Viewport(MARGIN);
+    /** Можно ли двигать лабиринт перетаскиванием (в редакторе мышь ставит стены). */
+    private boolean dragPan = true;
+    private double dragX;
+    private double dragY;
+    private Runnable onViewChanged = () -> { };
     private Maze maze;
     private Attempt attempt;
     private QTable table;
@@ -55,6 +66,69 @@ public class MazeCanvas extends Pane {
     public MazeCanvas() {
         getChildren().add(canvas);
         getStyleClass().add("maze-canvas");
+
+        setOnZoom(e -> {
+            zoomAt(e.getZoomFactor(), e.getX(), e.getY());
+            e.consume();
+        });
+        setOnScroll(e -> {
+            if (e.isShortcutDown() || e.isControlDown()) {
+                zoomAt(Math.exp(e.getDeltaY() * 0.01), e.getX(), e.getY());  // Cmd + колесо
+            } else {
+                panBy(e.getDeltaX(), e.getDeltaY());                            // два пальца / колесо
+            }
+            e.consume();
+        });
+        setOnMousePressed(e -> {
+            dragX = e.getX();
+            dragY = e.getY();
+        });
+        setOnMouseDragged(e -> {
+            if (dragPan) {
+                setCursor(Cursor.CLOSED_HAND);
+                panBy(e.getX() - dragX, e.getY() - dragY);
+                dragX = e.getX();
+                dragY = e.getY();
+            }
+        });
+        setOnMouseReleased(e -> setCursor(Cursor.DEFAULT));
+    }
+
+    /** Двигать ли лабиринт перетаскиванием мыши (в редакторе — нет, там мышь рисует). */
+    public void setDragPan(boolean dragPan) {
+        this.dragPan = dragPan;
+    }
+
+    /** Вызывается после изменения масштаба или сдвига (окно обновляет надпись с масштабом). */
+    public void setOnViewChanged(Runnable onViewChanged) {
+        this.onViewChanged = onViewChanged;
+    }
+
+    /** Масштаб: 1 — лабиринт вписан целиком. */
+    public double zoom() {
+        return viewport.zoom();
+    }
+
+    /** Кнопка «Вписать»: снова весь лабиринт целиком. */
+    public void resetView() {
+        viewport.reset();
+        redraw();
+        onViewChanged.run();
+    }
+
+    private void zoomAt(double factor, double x, double y) {
+        if (maze != null) {
+            viewport.zoomAt(factor, x, y, canvas.getWidth(), canvas.getHeight(), maze.width(), maze.height());
+            redraw();
+            onViewChanged.run();
+        }
+    }
+
+    private void panBy(double dx, double dy) {
+        if (maze != null) {
+            viewport.pan(dx, dy, canvas.getWidth(), canvas.getHeight(), maze.width(), maze.height());
+            redraw();
+        }
     }
 
     /**
@@ -64,6 +138,10 @@ public class MazeCanvas extends Pane {
      * @param arrows рисовать ли стрелки лучших направлений
      */
     public void draw(Maze maze, Attempt attempt, QTable table, GreedyPath path, boolean arrows) {
+        if (this.maze == null || this.maze.width() != maze.width() || this.maze.height() != maze.height()) {
+            viewport.reset();  // новый размер — снова вписать целиком
+            onViewChanged.run();
+        }
         this.maze = maze;
         this.attempt = attempt;
         this.table = table;
@@ -119,15 +197,16 @@ public class MazeCanvas extends Pane {
         GraphicsContext g = canvas.getGraphicsContext2D();
         g.setFill(BACKGROUND);
         g.fillRect(0, 0, width, height);
-        if (maze == null || width <= 2 * MARGIN || height <= 2 * MARGIN) {
+        if (maze == null) {
             return;
         }
-        cell = Math.floor(Math.min((width - 2 * MARGIN) / maze.width(), (height - 2 * MARGIN) / maze.height()));
-        if (cell < 1) {
-            cell = Math.min((width - 2 * MARGIN) / maze.width(), (height - 2 * MARGIN) / maze.height());
+        Viewport.Layout layout = viewport.layout(width, height, maze.width(), maze.height());
+        if (!(layout.cell() > 0)) {
+            return;
         }
-        left = Math.floor((width - cell * maze.width()) / 2);
-        top = Math.floor((height - cell * maze.height()) / 2);
+        cell = layout.cell();
+        left = Math.floor(layout.left());  // целые пиксели — стены чёткие, а не размытые
+        top = Math.floor(layout.top());
 
         g.setFill(FLOOR);
         g.fillRect(left, top, cell * maze.width(), cell * maze.height());

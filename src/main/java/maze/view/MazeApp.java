@@ -66,6 +66,8 @@ public class MazeApp extends Application {
     private final TextField episodes = new TextField("500");
     private final Button train = new Button("Обучить");
     private final Button reset = new Button("Сбросить обучение");
+    private final Button replay = new Button("Пройти выученный путь");
+    private final Label zoomLabel = new Label();
     private final Slider speed = new Slider(SpeedScale.SLIDER_MIN, SpeedScale.SLIDER_MAX, 0);
     private final Label speedLabel = new Label();
     private final CheckBox showPath = new CheckBox("выученный путь");
@@ -85,7 +87,7 @@ public class MazeApp extends Application {
     private final Label legendCheese = new Label();
     private HBox editorBar;
 
-    private long lastDrawnSteps = -1;
+    private long lastDrawnSteps = Long.MIN_VALUE;
     private long lastChartUpdate;
 
     static String stylesheet() {
@@ -115,7 +117,8 @@ public class MazeApp extends Application {
         stage.setScene(scene);
 
         canvas.setOnMouseClicked(e -> {
-            if (editorToggle.isSelected() && tools.getSelectedToggle() != null) {
+            // клик — только если мышь не сдвигалась: перетаскивание двигает лабиринт, а не ставит стены
+            if (e.isStillSincePress() && editorToggle.isSelected() && tools.getSelectedToggle() != null) {
                 MazeEditor.Tool tool = (MazeEditor.Tool) tools.getSelectedToggle().getUserData();
                 MazeEditor.Result result = editor.apply(tool,
                         canvas.toMazeX(e.getX()), canvas.toMazeY(e.getY()), canvas.cellSize());
@@ -164,6 +167,8 @@ public class MazeApp extends Application {
         editorToggle.setId("editor");
         editorToggle.setOnAction(e -> {
             controller.pause();
+            controller.stopReplay();
+            canvas.setDragPan(!editorToggle.isSelected());
             message.setText("");
             refresh(true, System.nanoTime());
         });
@@ -215,9 +220,22 @@ public class MazeApp extends Application {
                 legendItem(MazeCanvas.SHOCK_TILE, MazeCanvas.SHOCK, legendShock),
                 legendItem(MazeCanvas.CHEESE_TILE, MazeCanvas.CHEESE, legendCheese),
                 legendItem(MazeCanvas.PATH, MazeCanvas.PATH, new Label("выученный путь")));
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        Label hint = new Label("щипок — масштаб, два пальца — сдвиг");
+        Button fit = new Button("Вписать");
+        fit.setId("fit");
+        fit.setOnAction(e -> canvas.resetView());
+        canvas.setOnViewChanged(this::updateZoomLabel);
+        updateZoomLabel();
+        legend.getChildren().addAll(spacer, hint, zoomLabel, fit);
         legend.setAlignment(Pos.CENTER_LEFT);
         legend.getStyleClass().add("legend");
         return legend;
+    }
+
+    private void updateZoomLabel() {
+        zoomLabel.setText(Math.round(canvas.zoom() * 100) + "%");
     }
 
     private static HBox legendItem(Color fill, Color stroke, Label label) {
@@ -234,6 +252,7 @@ public class MazeApp extends Application {
         train.setId("train");
         episodes.setId("episodes");
         reset.setId("reset");
+        replay.setId("replay");
         speed.setId("speed");
         showPath.setId("showPath");
         showArrows.setId("showArrows");
@@ -250,12 +269,20 @@ public class MazeApp extends Application {
         HBox.setHgrow(train, Priority.ALWAYS);
         HBox trainRow = new HBox(6, episodes, train);
         reset.setMaxWidth(Double.MAX_VALUE);
+        replay.setMaxWidth(Double.MAX_VALUE);
 
         startPause.setOnAction(e -> command(controller::toggleRunning));
         step.setOnAction(e -> command(controller::stepOnce));
         train.setOnAction(e -> trainEpisodes());
         episodes.setOnAction(e -> trainEpisodes());
         reset.setOnAction(e -> command(controller::reset));
+        replay.setOnAction(e -> {
+            message.setText("");
+            if (!controller.startReplay()) {
+                message.setText("Мышь ещё не знает пути до сыра — сначала обучите её");
+            }
+            refresh(true, System.nanoTime());
+        });
 
         speed.setValue(SpeedScale.toSlider(controller.getSpeed()));
         speed.valueProperty().addListener((obs, old, now) -> {
@@ -281,8 +308,10 @@ public class MazeApp extends Application {
 
         status.getStyleClass().add("status");
         status.setWrapText(true);
+        status.setMinHeight(Region.USE_PREF_SIZE);   // две строки не обрезаются графиком снизу
         message.getStyleClass().add("message");
         message.setWrapText(true);
+        message.setMinHeight(Region.USE_PREF_SIZE);
 
         Label chartTitle = new Label("Сумма выигрыша за попытку");
         chartTitle.getStyleClass().add("muted");
@@ -290,7 +319,7 @@ public class MazeApp extends Application {
         VBox.setVgrow(chart, Priority.ALWAYS);
 
         VBox box = new VBox(8,
-                run, trainRow, reset,
+                run, trainRow, reset, replay,
                 new Separator(), speedLabel, speed, showPath, showArrows, autoStop,
                 new Separator(), stats, lastValue, status, message,
                 new Separator(), chartTitle, chart);
@@ -370,20 +399,23 @@ public class MazeApp extends Application {
 
     private void refresh(boolean force, long now) {
         Trainer trainer = controller.trainer();
-        Attempt attempt = trainer.attempt();
-        boolean changed = trainer.totalSteps() != lastDrawnSteps;
+        // во время показа выученного пути на экране — попытка показа, а не обучения
+        Attempt shown = controller.replay() != null ? controller.replay() : trainer.attempt();
+        long drawKey = trainer.totalSteps() * 100_003 + (controller.replay() == null ? -1 : controller.replay().steps());
+        boolean changed = drawKey != lastDrawnSteps;
         if (force || changed) {
             // обрывок пути (мышь ещё не знает дороги) выглядел бы как выученный путь — его не рисуем
             GreedyPath path = showPath.isSelected() ? trainer.bestPath() : null;
-            canvas.draw(controller.maze(), attempt, trainer.table(),
+            canvas.draw(controller.maze(), shown, trainer.table(),
                     path != null && path.reachesCheese() ? path : null, showArrows.isSelected());
-            attemptValue.setText(Integer.toString(trainer.episode()));
-            scoreValue.setText(Texts.score(attempt.score()));
-            stepsValue.setText(Integer.toString(attempt.steps()));
-            randomValue.setText(Math.round(trainer.epsilon() * 100) + "%");
+            boolean replaying = controller.replay() != null;
+            attemptValue.setText(replaying ? "показ" : Integer.toString(trainer.episode()));
+            scoreValue.setText(Texts.score(shown.score()));
+            stepsValue.setText(Integer.toString(shown.steps()));
+            randomValue.setText(replaying ? "0%" : Math.round(trainer.epsilon() * 100) + "%");
             lastValue.setText("Прошлая попытка: " + Texts.score(trainer.lastScore()));
             status.setText(controller.statusMessage());
-            lastDrawnSteps = trainer.totalSteps();
+            lastDrawnSteps = drawKey;
         }
         if (force || (changed && now - lastChartUpdate >= CHART_INTERVAL_NANOS)) {
             chart.update(trainer.history());
