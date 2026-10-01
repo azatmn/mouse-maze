@@ -159,7 +159,7 @@ pres.title = 'Мышь в лабиринте — обучение с подкр�
     ['1', 'Идеальный лабиринт', 'обход в глубину: к каждой клетке ровно один путь'],
     ['2', 'Обходные пути', 'убирается заданный процент стен — мыши есть из чего выбирать'],
     ['3', 'Вода и ток', 'в случайные клетки, кроме старта и сыра; один seed — один лабиринт'],
-    ['4', 'Редактор', 'клик по границе — стена; клик в клетку — вода, ток, старт, сыр'],
+    ['4', 'Редактор', 'клик по границе — стена, в клетку — вода, ток, старт, сыр; большой лабиринт можно приближать'],
   ];
   steps.forEach(([n, name, desc], i) => {
     const y = 1.85 + i * 1.25;
@@ -208,19 +208,19 @@ pres.title = 'Мышь в лабиринте — обучение с подкр�
   title(s, 'Архитектура', 'Модель — контроллер — окно; модель и логика кнопок не зависят от JavaFX');
   const cols = [
     ['maze.model', 'Maze, MazeGenerator — лабиринт\nAttempt — среда, награды\nQTable, Mouse — Q-learning\nTrainer — попытки, автостоп', C.path, C.pathBg],
-    ['maze.controller', 'TrainingController — кнопки, скорость\nMazeEditor — редактор\nSettingsForm, MazeForm — проверка ввода', C.water, C.waterBg],
+    ['maze.controller', 'TrainingController — кнопки, скорость, показ пути\nMazeEditor — редактор\nViewport — масштаб\nSettingsForm, MazeForm — проверка ввода', C.water, C.waterBg],
     ['maze.view', 'MazeApp — главное окно\nMazeCanvas — рисование\nScoreChart — график\nFormDialog — окна параметров', C.cheese, C.cheeseBg],
   ];
   cols.forEach(([name, text, col, bg], i) => {
     const x = 0.6 + i * 4.1;
-    card(s, x, 1.9, 3.8, 2.6, bg);
+    card(s, x, 1.9, 3.8, 2.95, bg);
     s.addText(name, { x: x + 0.3, y: 2.1, w: 3.3, h: 0.5, fontFace: HEAD, fontSize: 22, bold: true, color: col, margin: 0, isTextBox: true });
     s.addText(text, { x: x + 0.3, y: 2.75, w: 3.3, h: 2.3, fontFace: BODY, fontSize: 15, color: C.ink, margin: 0, paraSpaceAfter: 6, valign: 'top', isTextBox: true });
   });
   s.addText([
     { text: 'Инкапсуляция: ', options: { bold: true } }, { text: 'стены и предметы меняются только методами Maze; Settings неизменяем и проверяет себя.', options: { breakLine: true } },
     { text: 'Наследование и полиморфизм: ', options: { bold: true } }, { text: 'MazeApp → Application, MazeCanvas → Pane; sealed-типы результатов, обобщённый FormDialog<T>.' },
-  ], { x: 0.6, y: 4.9, w: 12.1, h: 1.3, fontFace: BODY, fontSize: 15, color: C.ink, paraSpaceAfter: 8, margin: 0, valign: 'top', isTextBox: true });
+  ], { x: 0.6, y: 5.2, w: 12.1, h: 1.3, fontFace: BODY, fontSize: 15, color: C.ink, paraSpaceAfter: 8, margin: 0, valign: 'top', isTextBox: true });
   s.addNotes('Модель ничего не знает об окне. Логика кнопок вынесена в контроллер, поэтому её можно проверить без открытия окна. Окно только передаёт нажатия и рисует.');
 }
 
@@ -247,12 +247,12 @@ pres.title = 'Мышь в лабиринте — обучение с подкр�
 {
   const s = pres.addSlide();
   s.background = { color: C.white };
-  title(s, 'Демонстрация', 'Первая попытка и после «Обучить 500»');
+  title(s, 'Демонстрация', 'Первая попытка и показ выученного пути после «Обучить 500»');
   fit(s, shot('gui_1b_first_attempt.png'), 0.6, 1.8, 5.9, 4.3);
-  fit(s, shot('gui_2_trained.png'), 6.8, 1.8, 5.9, 4.3);
-  s.addText('Мышь ничего не знает: бродит, бьётся о стены; за 59 шагов −231', { x: 0.6, y: 6.2, w: 5.9, h: 0.7, fontFace: BODY, fontSize: 15, color: C.muted, margin: 0, isTextBox: true });
-  s.addText('Выучила за 112 попыток: обходит ток, пьёт воду; график растёт', { x: 6.8, y: 6.2, w: 5.9, h: 0.7, fontFace: BODY, fontSize: 15, color: C.path, bold: true, margin: 0, isTextBox: true });
-  s.addNotes('Живая демонстрация: Старт на малой скорости — видно случайные шаги. Затем «Обучить 500» — появляется зелёный путь и надпись «выучила маршрут». Можно включить стрелки, поставить молнию в редакторе на путь и обучить заново — мышь найдёт новый обход.');
+  fit(s, shot('gui_8_replay.png'), 6.8, 1.8, 5.9, 4.3);
+  s.addText('Мышь ничего не знает: бродит, бьётся о стены; за 60 шагов −232', { x: 0.6, y: 6.2, w: 5.9, h: 0.7, fontFace: BODY, fontSize: 15, color: C.muted, margin: 0, isTextBox: true });
+  s.addText('Выучила за 112 попыток; показ пути: 29 шагов, +81, ток обойдён', { x: 6.8, y: 6.2, w: 5.9, h: 0.7, fontFace: BODY, fontSize: 15, color: C.path, bold: true, margin: 0, isTextBox: true });
+  s.addNotes('Живая демонстрация: Старт на малой скорости — видно случайные шаги. Затем «Обучить 500» — появляется зелёный путь и надпись «выучила маршрут». «Пройти выученный путь» — мышь идёт по зелёной линии без случайностей. Можно включить стрелки, поставить молнию в редакторе на путь и обучить заново — мышь найдёт новый обход.');
 }
 
 // ---------- 10. Защита от ввода ----------

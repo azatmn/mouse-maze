@@ -19,6 +19,8 @@ rectangle "Мышь в лабиринте" {
   usecase "Посмотреть выученный путь\nи стрелки" as UC7
   usecase "Следить за суммой выигрыша\n(график, счётчики)" as UC8
   usecase "Сбросить обучение" as UC9
+  usecase "Пройти выученный путь\n(без случайности и обучения)" as UC10
+  usecase "Приблизить и сдвинуть\nлабиринт" as UC11
   usecase "Проверить ввод" as UCV
   usecase "Выбрать направление" as M1
   usecase "Получить награду от среды" as M2
@@ -34,6 +36,8 @@ user --> UC6
 user --> UC7
 user --> UC8
 user --> UC9
+user --> UC10
+user --> UC11
 UC1 ..> UCV : <<include>>
 UC3 ..> UCV : <<include>>
 UC6 ..> UCV : <<include>>

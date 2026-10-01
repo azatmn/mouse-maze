@@ -19,7 +19,18 @@ package maze.controller {
     +reset()
     +applySettings(s)
     +setMaze(m) / mazeEdited()
+    +startReplay(): boolean
+    +stopReplay()
+    +replay(): Attempt
     +statusMessage(): String
+  }
+  class Viewport {
+    -zoom: double
+    -panX, panY: double
+    +layout(w, h, cols, rows): Layout
+    +zoomAt(f, x, y, ...)
+    +pan(dx, dy, ...)
+    +reset()
   }
   class MazeEditor {
     +hitTest(maze, x, y, cell): Hit
@@ -52,6 +63,7 @@ package maze.controller {
   class SpeedScale <<utility>>
   class Texts <<utility>> {
     +attempts(n): String
+    +steps(n): String
     +score(v): String
   }
 }
@@ -64,6 +76,7 @@ package maze.view {
   class MazeCanvas {
     +draw(maze, attempt, table, path, arrows)
     +toMazeX(x) / toMazeY(y)
+    +zoom() / resetView()
   }
   class ScoreChart {
     +update(history)
@@ -80,6 +93,7 @@ class "maze.model.Trainer" as Trainer
 
 App <|-- MazeApp
 MazeApp *-- MazeCanvas
+MazeCanvas *-- Viewport
 MazeApp *-- ScoreChart
 MazeApp --> TrainingController
 MazeApp --> MazeEditor
