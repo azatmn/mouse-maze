@@ -109,7 +109,7 @@ public class MazeCanvas extends Pane {
         return viewport.zoom();
     }
 
-    /** Кнопка «Вписать»: снова весь лабиринт целиком. */
+    /** Кнопка «Сбросить масштаб»: снова весь лабиринт целиком. */
     public void resetView() {
         viewport.reset();
         redraw();
