@@ -323,8 +323,10 @@ public class MazeApp extends Application {
                 new Separator(), stats, lastValue, status, message,
                 new Separator(), chartTitle, chart);
         box.getStyleClass().add("panel");
+        // ширина панели постоянная: длинное сообщение переносится, а не раздвигает панель и график
         box.setPrefWidth(290);
         box.setMinWidth(290);
+        box.setMaxWidth(290);
         return box;
     }
 
