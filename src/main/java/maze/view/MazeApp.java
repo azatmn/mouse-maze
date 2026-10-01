@@ -222,20 +222,19 @@ public class MazeApp extends Application {
                 legendItem(MazeCanvas.PATH, MazeCanvas.PATH, new Label("выученный путь")));
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        Label hint = new Label("щипок — масштаб, два пальца — сдвиг");
-        Button fit = new Button("Вписать");
+        Button fit = new Button("Сбросить масштаб");
         fit.setId("fit");
         fit.setOnAction(e -> canvas.resetView());
         canvas.setOnViewChanged(this::updateZoomLabel);
         updateZoomLabel();
-        legend.getChildren().addAll(spacer, hint, zoomLabel, fit);
+        legend.getChildren().addAll(spacer, zoomLabel, fit);
         legend.setAlignment(Pos.CENTER_LEFT);
         legend.getStyleClass().add("legend");
         return legend;
     }
 
     private void updateZoomLabel() {
-        zoomLabel.setText(Math.round(canvas.zoom() * 100) + "%");
+        zoomLabel.setText("Масштаб: " + Math.round(canvas.zoom() * 100) + "%");
     }
 
     private static HBox legendItem(Color fill, Color stroke, Label label) {
